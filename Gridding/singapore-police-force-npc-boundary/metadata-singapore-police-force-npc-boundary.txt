@@ -1,0 +1,36 @@
+# Metadata for Singapore Police Force NPC Boundary
+---
+Identifier: '91a63299-eabe-4bac-bb7e-ac1d10be81f4'
+Name: 'singapore-police-force-npc-boundary'
+Title: 'Singapore Police Force NPC Boundary'
+Description: 'Singapore Police Force NPC Boundary'
+Topics:
+  - 'Infrastructure'
+Keywords:
+  - 'NPC'
+  - 'Singapore Police Force NPC Boundary'
+  - 'boundary'
+  - 'neighbourhood police centre'
+  - 'onemap'
+  - 'police'
+  - 'spf'
+  - 'themes'
+Publisher:
+  Name: 'Ministry of Home Affairs - Singapore Police Force'
+  Admin 1:
+    Name: 'lim yong seng'
+    Department: 'SINGAPORE POLICE FORCE'
+    Email: 'lim_yong_seng@spf.gov.sg'
+Sources:
+  - 'Ministry of Home Affairs - Singapore Police Force'
+License: 'https://data.gov.sg/open-data-licence'
+Frequency: 'Ad-hoc'
+Last Updated: '2022-01-17T13:36:27.102151'
+Resources:
+  -
+    Identifier: '8f1a0f7a-58c8-4a80-b6de-a146e1f565f6'
+    Name: 'spf-boundaries.kml'
+    Title: 'SPF Boundaries'
+    Url: 'https://data.gov.sg/dataset/91a63299-eabe-4bac-bb7e-ac1d10be81f4/resource/8f1a0f7a-58c8-4a80-b6de-a146e1f565f6/download/spf-boundaries.kml'
+    Format: 'KML'
+    Last Updated: '2022-01-17T13:36:05.015039'
