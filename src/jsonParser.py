@@ -3,6 +3,13 @@ import pandas as pd
 
 class jsonParser():
     def __init__(self,fs=None):
+        '''
+        Args:
+            fs: gcsfs.GCSFileSystem object
+        Comments:
+            If fs is present, uses gcsfs context to open file.
+            Otherwise, a local filesystem context is used.
+        '''
         self.fs=fs
 
     def get_items(self,path:str,kind:str):
