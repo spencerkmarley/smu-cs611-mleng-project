@@ -1,11 +1,14 @@
 import json
 import pandas as pd
+import gcsfs as fs
 
-def get_items(path:str,kind:str):
+def get_items(path:str,kind:str,cloud=False):
     '''Parse items key from JSON
     Args:
         path: Path to file
         kind: Display for description i.e. 'Relative Humidity'
+        cloud: Flag to toggle reading Google Cloud Storage or local file systems
+        
     Returns:
         pandas DataFrame object of the following schema:
             - timestamp
@@ -13,8 +16,12 @@ def get_items(path:str,kind:str):
             - value
             - Description
     '''
-    with open(path,'r') as f:
-        data=json.load(f)
+    if cloud:
+        with fs.open(path) as f:
+            data = json.load(f)
+    else:
+        with open(path,'r') as f:
+            data = json.load(f)
     
     items = data['items'][0]
     
@@ -27,11 +34,13 @@ def get_items(path:str,kind:str):
     return df
 
 
-def get_metadata(path:str,kind:str):
+def get_metadata(path:str,kind:str,cloud=False):
     '''Parse metadata key from JSON
     Args:
         path: Path to file
         kind: Display for description
+        cloud: Flag to toggle reading Google Cloud Storage or local file systems
+
     Returns:
         pandas DataFrame object of the following schema:
             - timestamp            
@@ -44,8 +53,12 @@ def get_metadata(path:str,kind:str):
             - Description                
     '''
 
-    with open(path,'r') as f:
-        data=json.load(f)
+    if cloud:
+        with fs.open(path) as f:
+            data = json.load(f)
+    else:
+        with open(path,'r') as f:
+            data = json.load(f)
     
     metadata = data['metadata']
     
@@ -72,10 +85,11 @@ def get_metadata(path:str,kind:str):
     )
     return df
 
-def load_taxi_data(path):
+def load_taxi_data(path,cloud=False):
     '''Parse taxi coordinates from JSON
     Args:
         path: Path to file
+        cloud: Flag to toggle reading Google Cloud Storage or local file systems
         
     Returns:
         pandas DataFrame object of the following schema:
