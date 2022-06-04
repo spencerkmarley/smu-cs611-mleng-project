@@ -41,6 +41,9 @@ class jsonParser():
             'value':[[(k,v) for k,v in obj.items()][1][1] for obj in items['readings']],
             'Description':[kind for i in range(len(items['readings']))]})
         
+        df['value']=df['value'].astype('float')
+        df['timestamp']=pd.to_datetime(df['timestamp'])
+
         return df
 
 
@@ -93,6 +96,10 @@ class jsonParser():
                 'Description':[kind for i in range(len(metadata['stations']))]
             }
         )
+
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+
         return df
 
     def load_taxi_data(self,path):
