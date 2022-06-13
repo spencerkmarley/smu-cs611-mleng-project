@@ -1,5 +1,9 @@
 import json
 import pandas as pd
+import geopandas as gpd
+from shapely import wkt
+from shapely.ops import nearest_points
+import re
 
 class jsonParser():
     def __init__(self,fs=None):
@@ -13,11 +17,10 @@ class jsonParser():
         self.fs=fs
 
     def get_items(self,path:str,kind:str):
-        '''Parse items key from JSON
+        '''Parse items key from NEA JSON
         Args:
-            path: Path to file
+            path: Path to file. Accepts Google Cloud URL if initialized with GCSFileSystem.
             kind: Display for description i.e. 'Relative Humidity'
-            cloud: Flag to toggle reading Google Cloud Storage or local file systems
             
         Returns:
             pandas DataFrame object of the following schema:
@@ -33,10 +36,14 @@ class jsonParser():
             with open(path,'r') as f:
                 data = json.load(f)
         
+        pattern = r"\d\d\d\d-\d\d-\d\dT\d\d-\d\d-\d\d"
+        re_timestamp = re.compile(pattern)
+        
         items = data['items'][0]
+        timestamp = re_timestamp.findall(path)[0]
         
         df = pd.DataFrame({
-            'timestamp':[items['timestamp'] for i in range(len(items['readings']))],
+            'timestamp':[timestamp for i in range(len(items['readings']))],
             'station_id':[[(k,v) for k,v in obj.items()][0][1] for obj in items['readings']],
             'value':[[(k,v) for k,v in obj.items()][1][1] for obj in items['readings']],
             'Description':[kind for i in range(len(items['readings']))]})
@@ -48,11 +55,10 @@ class jsonParser():
 
 
     def get_metadata(self,path:str,kind:str):
-        '''Parse metadata key from JSON
+        '''Parse metadata key from NEA JSON
         Args:
-            path: Path to file
+            path: Path to file. Accepts Google Cloud URL if initialized with GCSFileSystem.
             kind: Display for description
-            cloud: Flag to toggle reading Google Cloud Storage or local file systems
 
         Returns:
             pandas DataFrame object of the following schema:
@@ -74,8 +80,11 @@ class jsonParser():
                 data = json.load(f)
         
         metadata = data['metadata']
+        pattern = r"\d\d\d\d-\d\d-\d\dT\d\d-\d\d-\d\d"
+        re_timestamp = re.compile(pattern)
+        timestamp = [re_timestamp.findall(path)[0] for i in range(len(metadata['stations']))]
         
-        timestamp = [data['items'][0]['timestamp'] for i in range(len(metadata['stations']))]
+        # timestamp = [data['items'][0]['timestamp'] for i in range(len(metadata['stations']))]
         location = [station['location'] for station in metadata['stations']]
         latitude = [station['latitude'] for station in location]
         longitude = [station['longitude'] for station in location]
@@ -105,8 +114,7 @@ class jsonParser():
     def load_taxi_data(self,path):
         '''Parse taxi coordinates from JSON
         Args:
-            path: Path to file
-            cloud: Flag to toggle reading Google Cloud Storage or local file systems
+            path: Path to file. Accepts Google Cloud URL if initialized with GCSFileSystem.
             
         Returns:
             pandas DataFrame object of the following schema:
@@ -127,9 +135,43 @@ class jsonParser():
         coordinates = features['geometry']['coordinates']
         longitude = [i[0] for i in coordinates]
         latitude = [i[1] for i in coordinates]
-        timestamp = [features['properties']['timestamp'] for i in range(len(coordinates))]
+        
+        pattern = r"\d\d\d\d-\d\d-\d\dT\d\d-\d\d-\d\d"
+        re_timestamp = re.compile(pattern)
+        timestamp = [re_timestamp.findall(path)[0] for i in range(len(coordinates))]
         df = pd.DataFrame({'timestamp':timestamp,'longitude':longitude,'latitude':latitude})
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
+    
+    def load_taxi_gdf(self,path):
+        '''Parse taxi coordinates from JSON
+        Args:
+            path: Path to file. Accepts Google Cloud URL if initialized with GCSFileSystem.
+            
+        Returns:
+            geopandas DataFrame object of the following schema:
+                - index
+                - timestamp
+                - geometry
+        '''
+        if self.fs!=None:
+            with self.fs.open(path) as f:
+                lta_data=json.load(f)
+
+        else:
+            with open(path,'r') as f:
+                lta_data=json.load(f)
+                
+        timestamp = lta_data['features'][0]['properties']['timestamp']
+        taxi_list = lta_data['features'][0]['geometry']['coordinates']
+        df = pd.DataFrame({'timestamp': [timestamp for x in range(len(taxi_list))]})
+        df["Coordinates"] = [f'POINT({str(i[0])} {str(i[1])})' for i in taxi_list]
+
+        df['geometry'] = df.Coordinates.apply(wkt.loads)
+        gdf = gpd.GeoDataFrame(df, geometry='geometry')
+        gdf.drop('Coordinates', inplace=True, axis=1)
+        gdf.reset_index(inplace=True)
+        return gdf
 
 
 if __name__=='__main__':
