@@ -2,7 +2,6 @@ import json
 import pandas as pd
 import geopandas as gpd
 from shapely import wkt
-from shapely.ops import nearest_points
 import re
 
 class jsonParser():
@@ -49,7 +48,7 @@ class jsonParser():
             'Description':[kind for i in range(len(items['readings']))]})
         
         df['value']=df['value'].astype('float')
-        df['timestamp']=pd.to_datetime(df['timestamp'])
+        df['timestamp']=pd.to_datetime(df['timestamp']).dt.tz_localize(None)
 
         return df
 
@@ -104,9 +103,8 @@ class jsonParser():
                 'reading_unit':[reading_unit for i in range(len(metadata['stations']))],
                 'Description':[kind for i in range(len(metadata['stations']))]
             }
-        )
-
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        )        
+        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
         
 
         return df
@@ -141,6 +139,7 @@ class jsonParser():
         timestamp = [re_timestamp.findall(path)[0] for i in range(len(coordinates))]
         df = pd.DataFrame({'timestamp':timestamp,'longitude':longitude,'latitude':latitude})
         df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['timestamp'] = df['timestamp'].dt.tz_localize(None)
         return df
     
     def load_taxi_gdf(self,path):
