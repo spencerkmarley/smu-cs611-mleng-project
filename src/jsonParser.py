@@ -105,7 +105,7 @@ class jsonParser():
                 'Description':[kind for i in range(len(metadata['stations']))]
             }
         )
-
+        df['latlon'] = df.apply(lambda x: (x.longitude, x.latitude), axis=1)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         
 
