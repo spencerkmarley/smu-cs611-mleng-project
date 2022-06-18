@@ -3,6 +3,7 @@ import pandas as pd
 import geopandas as gpd
 from shapely import wkt
 import re
+from datetime import datetime
 
 class jsonParser():
     def __init__(self,fs=None):
@@ -40,7 +41,8 @@ class jsonParser():
         
         items = data['items'][0]
         timestamp = re_timestamp.findall(path)[0]
-        
+        timestamp = datetime.strptime(timestamp[:16], '%Y-%m-%dT%H-%M')
+
         df = pd.DataFrame({
             'timestamp':[timestamp for i in range(len(items['readings']))],
             'station_id':[[(k,v) for k,v in obj.items()][0][1] for obj in items['readings']],
@@ -48,7 +50,8 @@ class jsonParser():
             'Description':[kind for i in range(len(items['readings']))]})
         
         df['value']=df['value'].astype('float')
-        df['timestamp']=pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+        # df['timestamp']=pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+        df['timestamp']=pd.to_datetime(df['timestamp'])
 
         return df
 
@@ -81,7 +84,9 @@ class jsonParser():
         metadata = data['metadata']
         pattern = r"\d\d\d\d-\d\d-\d\dT\d\d-\d\d-\d\d"
         re_timestamp = re.compile(pattern)
-        timestamp = [re_timestamp.findall(path)[0] for i in range(len(metadata['stations']))]
+        timestamp = re_timestamp.findall(path)[0]
+        timestamp = datetime.strptime(timestamp[:16], '%Y-%m-%dT%H-%M')
+        timestamp = [timestamp for i in range(len(metadata['stations']))]
         
         # timestamp = [data['items'][0]['timestamp'] for i in range(len(metadata['stations']))]
         location = [station['location'] for station in metadata['stations']]
@@ -104,8 +109,8 @@ class jsonParser():
                 'Description':[kind for i in range(len(metadata['stations']))]
             }
         )        
-        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
-        
+        # df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
 
         return df
 
