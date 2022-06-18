@@ -28,51 +28,46 @@ def load_nea_to_gbq(project:str,dataset_id:str,measure:str,filename:str):
     print(f"Writing {measure} metadata to {metadata_table}")    
     metadata.to_gbq(metadata_table,project,chunksize=None,if_exists='append')
 
-def date_check(date):
-    '''
-    Args:
-        date(str): Date string to check
-    Returns:
-        result(bool): Whether its formatted correctly
-        
-    '''
-    pattern = r'\d{4}-\d{2}-\d{2}$'
-    date_match = re.compile(pattern)
-    result = date_match.findall(date)
-    return result
 
-def get_start_index(start_date:str,file_list:list):
+def get_start_index(start_file:str,file_list:list):
+    '''Iteratively search from start of file list to find first occurence of end_file.
+    Args:
+        start_file (str): Search string. Can give a date of form YYYY-MM-DD to find first file at specific date, or filename to match specific file.
+        file_list (list): List of file paths from Google Cloud Storage.
+    Yields:
+        start_index (int): Index of last occurrence of search string.
+    '''
     start_index=0
 
-    if date_check(start_date):
-        file_re = re.compile(start_date)
-        
-        for file in file_list:
-            if file_re.findall(file):
-                start_index=file_list.index(file)
-                print(f"Valid start date provided, starting batch loading at index {start_index}")
-                break
+    
+    file_re = re.compile(start_file)
+    
+    for file in file_list:
+        if file_re.findall(file):
+            start_index=file_list.index(file)
+            print(f"Valid start file provided, starting batch loading at index {start_index}")
+            break
 
-        return start_index    
+    return start_index
 
-    else:
-        print("Invalid start date (YYYY-MM-DD) provided. Starting from index 0")
-        return start_index
-
-def get_end_index(end_date:str,file_list:list):
+def get_end_index(end_file:str,file_list:list):
+    '''Iteratively search from end of file list to find last occurence of end_file.
+    Args:
+        end_file (str): Search string. Can give a date of form YYYY-MM-DD to find last file at specific date, or filename to match specific file.
+        file_list (list): List of file paths from Google Cloud Storage.
+    Yields:
+        end_index (int): Index of last occurrence of search string.
+    '''
     end_index=len(file_list)
-    if date_check(end_date):
-        file_re = re.compile(end_date)
-        for file in file_list[::-1]:
-            if file_re.findall(file):
-                end_index=file_list.index(file)
-                print(f"Valid end date provided, end batch loading at index {end_index}")
-                break
-        
-        return end_index
-    else:
-        print("Invalid end date (YYYY-MM-DD) provided. Loading all data")
-        return end_index
+    
+    file_re = re.compile(end_file)
+    for file in file_list[::-1]:
+        if file_re.findall(file):
+            end_index=file_list.index(file)
+            print(f"Valid end date provided, end batch loading at index {end_index}")
+            break
+    
+    return end_index
 
 if __name__ == '__main__':
     import argparse
@@ -84,8 +79,8 @@ if __name__ == '__main__':
     parser.add_argument('--measure','-m', nargs='?',type=str, help='NEA measure i.e. air-temperature,relative-humidity or rainfall. Default to all 3')
     parser.add_argument('--filename','-f', nargs='?', default=None,type=str, help='If provided, file to load')
     parser.add_argument('--batch','-B', action="store_true", help='If provided, trigger batch loading')
-    parser.add_argument('--enddate','-e', nargs='?', default="", type=str, help='YYYY-MM-DD format. If provided, load data up to this date')
-    parser.add_argument('--startdate','-s', nargs='?', default="", type=str, help='YYYY-MM-DD format. If provided, load data from this date')
+    parser.add_argument('--endfile','-e', nargs='?', default="", type=str, help='If provided, load data up to this file/date')
+    parser.add_argument('--startfile','-s', nargs='?', default="", type=str, help='If provided, load data from this file/date')
     args = parser.parse_args()
     
     project = args.project
@@ -94,8 +89,8 @@ if __name__ == '__main__':
     measure = args.measure
     filename = args.filename
     batch=args.batch
-    start_date = args.startdate
-    end_date = args.enddate
+    start_file = args.startfile
+    end_file = args.endfile
     
     if measure:
         measures = [measure]
@@ -109,8 +104,8 @@ if __name__ == '__main__':
         filenames = fs.glob('/'.join([bucket,measure,"*"]))
 
         if batch:              
-            start_index = get_start_index(start_date,filenames)
-            end_index = get_end_index(end_date,filenames)
+            start_index = get_start_index(start_file,filenames)
+            end_index = get_end_index(end_file,filenames)
             filenames = filenames[start_index:end_index]
 
             for file in filenames:
