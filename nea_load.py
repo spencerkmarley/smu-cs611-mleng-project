@@ -63,7 +63,7 @@ def get_end_index(end_file:str,file_list:list):
     file_re = re.compile(end_file)
     for file in file_list[::-1]:
         if file_re.findall(file):
-            end_index=file_list.index(file)
+            end_index=file_list.index(file)+1 # To account for zero based indexing
             print(f"Valid end date provided, end batch loading at index {end_index}")
             break
     
