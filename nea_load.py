@@ -75,7 +75,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Reads NEA JSON file to GBQ')
     parser.add_argument('--project','-p', nargs='?', default='ml-eng-cs611-group-project', type=str, help='GCP project name i.e. ml-eng-cs611-group-project')
     parser.add_argument('--bucket','-b', nargs='?', default='ml-eng-cs611-group-project-nea', type=str, help='GCS bucket name i.e. ml-eng-cs611-group-project-nea')
-    parser.add_argument('--dataset_id','-d', nargs='?', default='taxi_dataset', type=str, help='GBQ dataset ID i.e. taxi_dataset')
+    parser.add_argument('--dataset_id','-d', nargs='?', default='taxi_dataset_reference', type=str, help='GBQ dataset ID i.e. taxi_dataset')
     parser.add_argument('--measure','-m', nargs='?',type=str, help='NEA measure i.e. air-temperature,relative-humidity or rainfall. Default to all 3')
     parser.add_argument('--filename','-f', nargs='?', default=None,type=str, help='If provided, file to load')
     parser.add_argument('--batch','-B', action="store_true", help='If provided, trigger batch loading')

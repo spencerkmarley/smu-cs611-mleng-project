@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Reads LTA JSON file to GBQ')
     parser.add_argument('--project','-p', nargs='?', default='ml-eng-cs611-group-project', type=str, help='GCP project name i.e. ml-eng-cs611-group-project')
     parser.add_argument('--bucket','-b', nargs='?', default='ml-eng-cs611-group-project-taxis', type=str, help='GCS bucket name i.e. ml-eng-cs611-group-project-taxis')
-    parser.add_argument('--dataset_id','-d', nargs='?', default='taxi_dataset', type=str, help='GBQ dataset ID i.e. taxi_dataset')    
+    parser.add_argument('--dataset_id','-d', nargs='?', default='taxi_dataset_reference', type=str, help='GBQ dataset ID i.e. taxi_dataset')    
     parser.add_argument('--filename','-f', nargs='?', default=None,type=str, help='If provided, file to load i.e. 2022-05-27T14-00-03.json')
     parser.add_argument('--batch','-B', action="store_true", help='If provided, trigger batch loading')
     parser.add_argument('--endfile','-e', nargs='?', default="", type=str, help='If provided, load data up to this file/date')
