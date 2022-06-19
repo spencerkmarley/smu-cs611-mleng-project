@@ -1,18 +1,26 @@
+from pydantic import NoneStr
 import requests
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-import seaborn as sns
 import itertools
-import os
+import re
+import argparse
+import json
 
-def get_weather_data(query:str):
+from sklearn import datasets
+
+def get_weather_data(query:str,dataset:str=None):
     '''Returns dictionary of JSON objects for weather data given a datetime string
     Each entry in the dictionary is the JSON response for each of the API Endpoints of
      ["air-temperature","rainfall","relative-humidity"]    
     '''
-    data_sets = ["air-temperature","rainfall","relative-humidity"]
+    if dataset:
+        data_sets=[dataset]
+    else:
+        data_sets = ["air-temperature","rainfall","relative-humidity"]
+
     results={}
+
     for measure in data_sets:
         URL = "https://api.data.gov.sg/v1/environment/"+measure
         params={'date_time':query}
@@ -70,6 +78,24 @@ def generate_dataset(timestamps:list):
     return results
     
 if __name__=='__main__':
-    query="2019-01-01T20:00:00"
-    results = generate_dataset([query])
-    results.to_csv('data/results.csv')
+    parser = argparse.ArgumentParser(description='Queries APIs and downloads JSON file')    
+    parser.add_argument('--measure','-m', nargs='?',type=str, help='NEA measure or Taxi i.e.: rainfall, air-temperature, relative-humidity, taxi-availability')
+    parser.add_argument('--query','-q', nargs=1,type=str, help='timestamp to query API')
+    
+    args = parser.parse_args()
+    query=args.query[0] # For some reason it parses as a list.
+    measure = args.measure
+
+    if measure == 'taxi-availability':
+        results = get_taxi_data(query)
+    else:
+        if measure:
+            results = get_weather_data(query,measure)
+        else:
+            results = get_weather_data(query)
+
+    query = query.replace(':','-')
+
+    for measure in results.keys():
+        with open(f"{measure}_{query}.json", "w") as outfile:
+            json.dump(results[measure], outfile)

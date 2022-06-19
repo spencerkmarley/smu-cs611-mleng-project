@@ -3,7 +3,7 @@ import re
 
 from src import jsonParser
 
-def load_taxi_to_gbq(project:str,dataset_id:str,filename:str):
+def load_taxi_to_gbq(project:str,dataset_id:str,filename:str,fs=None):
     '''Load a single json 
     Args:
         project:str:        
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         end_index = get_end_index(end_file,filenames)
         filenames = filenames[start_index:end_index]
         for file in filenames:
-            load_taxi_to_gbq(project,dataset_id,file)
+            load_taxi_to_gbq(project,dataset_id,file,fs)
         print("Last file loaded.")
         
     else:
@@ -102,6 +102,6 @@ if __name__ == '__main__':
             print("No filename provided, default to latest file")
             filename=filenames[-1]
 
-        load_taxi_to_gbq(project,dataset_id,filename)
+        load_taxi_to_gbq(project,dataset_id,filename,fs)
     
     

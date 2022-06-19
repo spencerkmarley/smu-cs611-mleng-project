@@ -5,7 +5,7 @@ from matplotlib.pyplot import get
 
 from src import jsonParser
 
-def load_nea_to_gbq(project:str,dataset_id:str,measure:str,filename:str):
+def load_nea_to_gbq(project:str,dataset_id:str,measure:str,filename:str,fs:None):
     '''Load a single json 
     Args:
         project:str:        
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             filenames = filenames[start_index:end_index]
 
             for file in filenames:
-                load_nea_to_gbq(project,dataset_id,measure,file)
+                load_nea_to_gbq(project,dataset_id,measure,file,fs)
                     
             print("Last file loaded.")
 
@@ -123,6 +123,6 @@ if __name__ == '__main__':
                 print("No filename provided, default to latest file")      
                 filename=filenames[-1]
 
-            load_nea_to_gbq(project,dataset_id,measure,filename)
+            load_nea_to_gbq(project,dataset_id,measure,filename,fs)
     
     
