@@ -141,7 +141,9 @@ class jsonParser():
         
         pattern = r"\d\d\d\d-\d\d-\d\dT\d\d-\d\d-\d\d"
         re_timestamp = re.compile(pattern)
-        timestamp = [re_timestamp.findall(path)[0] for i in range(len(coordinates))]
+        timestamp = re_timestamp.findall(path)[0]
+        timestamp = datetime.strptime(timestamp[:16], '%Y-%m-%dT%H-%M')
+        timestamp = [timestamp for i in range(len(coordinates))]
         df = pd.DataFrame({'timestamp':timestamp,'longitude':longitude,'latitude':latitude})
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['timestamp'] = df['timestamp'].dt.tz_localize(None)
