@@ -3,7 +3,7 @@ import pandas as pd
 import gcsfs
 
 from scipy.spatial import distance
-from datetime import datetime
+from datetime import datetime,timedelta
 
 import math
 from collections import Counter
@@ -91,8 +91,7 @@ def assign_taxis(taxi_df,grids):
     taxi_clean = pd.merge(all_grids, df_taxicount, how='left')
     taxi_clean['taxi_count'] = taxi_clean['taxi_count'].fillna(0) #fill missing taxi_count = 0
     taxi_clean['grid_num']=taxi_clean['grid_num'].apply(int)    
-    taxi_clean = taxi_clean.set_index('grid_num')
-    taxi_clean.drop('timestamp',axis=1,inplace=True)
+    taxi_clean = taxi_clean.set_index('grid_num')    
     return taxi_clean
 
 
@@ -105,7 +104,8 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_id','-d', nargs='?', default='taxi_dataset_reference', type=str, help='GBQ dataset ID i.e. taxi_dataset')
     parser.add_argument('--table_id','-t', nargs='?', default='assignment-taxi', type=str, help='GBQ table ID i.e. assignment-taxi')
     parser.add_argument('--gridfile','-g', nargs='?', default='./updated codes/filter_grids_2/filter_grids_2.shp', type=str, help='Path to gridfiles (static data)')    
-    parser.add_argument('--query','-q', type=str, help='Timestamp to assign i.e. 2022-06-01 13:15:00')    
+    parser.add_argument('--query','-q', type=str, help='Timestamp to assign i.e. 2022-06-01 13:15:00')
+    parser.add_argument('--batch','-B', nargs='?', default=0, type=int, help='No. of 15 min intervals to batch process')
     args = parser.parse_args()
     
     project = args.project
@@ -114,6 +114,9 @@ if __name__ == '__main__':
     table_id = args.table_id
     gridfile = args.gridfile    
     query = args.query
+    batch = args.batch
+
+    print(f"Assigning taxi data for timestamp {query} and {batch} more batch(es)")
 
     fs = gcsfs.GCSFileSystem(project=project)
         
@@ -124,8 +127,14 @@ if __name__ == '__main__':
     grid_nums = list(grids_df['grid_num'].unique())    
 
     ### Section 3: Assign taxis to grid
+    query_datetime = datetime.strptime(query,'%Y-%m-%d %H:%M:%S')
 
-    taxi = query_taxi_availability(query)
-    taxi_df = assign_taxis(taxi,grids_df)   
-
-    taxi_df.to_gbq('.'.join([dataset_id,table_id]),project,if_exists='append')
+    date_list=[query_datetime + timedelta(minutes=15*x) for x in range(1+batch)]
+    df_list=[]
+    for date in tqdm(date_list):
+        taxi = query_taxi_availability(date)
+        taxi_df = assign_taxis(taxi,grids_df)
+        df_list.append(taxi_df)
+    consolidated_df = pd.concat(df_list)
+    consolidated_df.to_gbq('.'.join([dataset_id,table_id]),project,if_exists='append')
+    print(f"Loaded {1+batch} timestamp(s) successfully")
