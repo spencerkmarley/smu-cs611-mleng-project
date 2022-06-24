@@ -92,15 +92,14 @@ def assign_grids(grids_df, df_metadata, df_items, grid_nums):
 
     for i in tqdm(range(len(grid_nums)),desc='Grids assigned'): # for each grid_num
         grid_coordinates = grids_df.iloc[i]['latlon'] # latlon of row i grid_num
-        print(grid_coordinates)
-        print(df_metadata['latlon'])
+        
         distances = df_metadata['latlon'].apply(lambda x: distance.euclidean(x,grid_coordinates))
         distance_sorted = distances.sort_values()
         # print(distance_sorted)
         for station in distance_sorted.index:
-            if any(df_items[df_items['station_id']==station]): # there is a value
+            if len(df_items[df_items['station_id']==station])>0: # there is a value
                 # print(f"Assigning station {station} to grid {i}")
-                assignment[i]=station
+                assignment[grids_df.iloc[i]['grid_num']]=station
                 break
         
             else:
@@ -127,6 +126,7 @@ def get_grid_data(gridfile:str):
     grids_df = pd.DataFrame(grids)
     grids_df['centroid'] = grids_df['centroid'].astype(str)
     grids_df['latlon'] = grids_df['centroid'].apply(lambda x: (float(x.split(' ')[1][1:]), float(x.split(' ')[2][:-1])))
+    grids_df['grid_num']=grids_df['grid_num'].astype(int)
     return grids_df
 
 
@@ -162,6 +162,7 @@ if __name__ == '__main__':
     ### Section 2: Assign NEA stations to grid
     assignment = {measure:[] for measure in measures}
     for measure in measures:
+        print(f"Assigning {measure} to grid")
         df_metadata=query_nea_metadata(measure=measure,query=query)
         df_items=query_nea_items(measure=measure,query=query)
         result=assign_grids(grids_df,df_metadata,df_items,grid_nums)
@@ -175,5 +176,5 @@ if __name__ == '__main__':
     assignment_df.rename(columns={'index':'grid_num','relative-humidity':'relative_humidity','air-temperature':'air_temperature'},inplace=True)
 
     ### Section 3: Write to Bigquery
-
+    print("Uploading results to Bigquery...")
     assignment_df.to_gbq('.'.join([dataset_id,table_id]),project,if_exists='append')

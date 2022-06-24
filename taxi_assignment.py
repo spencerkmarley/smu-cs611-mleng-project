@@ -70,7 +70,7 @@ def assign_taxis(taxi_df,grids):
 
     def get_grid_latitude(latitude:float):
         return (13 - math.ceil((latitude -1.208)/0.020538461538461547))*22
-
+    
     longitude_array = taxi_df['longitude'].to_numpy()
     latitude_array = taxi_df['latitude'].to_numpy()
 
@@ -133,8 +133,11 @@ if __name__ == '__main__':
     df_list=[]
     for date in tqdm(date_list):
         taxi = query_taxi_availability(date)
-        taxi_df = assign_taxis(taxi,grids_df)
-        df_list.append(taxi_df)
+        try:
+            taxi_df = assign_taxis(taxi,grids_df)
+            df_list.append(taxi_df)
+        except:
+            print(f"Empty data for {date}")
     consolidated_df = pd.concat(df_list)
     consolidated_df.to_gbq('.'.join([dataset_id,table_id]),project,if_exists='append')
     print(f"Loaded {1+batch} timestamp(s) successfully")
