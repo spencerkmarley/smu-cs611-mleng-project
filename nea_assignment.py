@@ -13,6 +13,28 @@ from src import assignment
 import warnings
 warnings.filterwarnings('ignore')
 
+def get_grid_data(gridfile:str):
+    '''Read the shpfile containing Singpaore grid data
+    Args:
+        gridfile:str:Path to gridfile
+    Returns
+        geopandas.DataFrame with following schema
+        - grid_num 
+        - intersect
+        - geometry (active geometry)        
+        - latlon (tuple)
+    '''
+    grids = gpd.read_file(gridfile)
+    grids['centroid'] = grids['geometry'].apply(lambda x: x.centroid) # get grids' centroid
+
+    # convert to dataframe
+    grids_df = pd.DataFrame(grids)
+    grids_df['centroid'] = grids_df['centroid'].astype(str)
+    grids_df['latlon'] = grids_df['centroid'].apply(lambda x: (float(x.split(' ')[1][1:]), float(x.split(' ')[2][:-1])))
+    grids_df['grid_num']=grids_df['grid_num'].astype(int)
+    return grids_df
+
+
 def query_nea_metadata(measure:str, query:str, project_id='ml-eng-cs611-group-project',dataset_id='taxi_dataset_reference'):
     '''Query NEA BigQuery for metadata
     Args:
@@ -108,26 +130,65 @@ def assign_grids(grids_df, df_metadata, df_items, grid_nums):
     return assignment
 
 
-def get_grid_data(gridfile:str):
-    '''Read the shpfile containing Singpaore grid data
+def assign_measure(query,measure,grids_df):
+    '''Generate ranked assignment of stations to grids sorted by Euclidean distance
     Args:
-        gridfile:str:Path to gridfile
-    Returns
-        geopandas.DataFrame with following schema
-        - grid_num 
-        - intersect
-        - geometry (active geometry)        
-        - latlon (tuple)
+        query:str:                      Timestamp to query databases e.g. '2022-06-01 13:15:00'
+        measure:str:                    relative-humidity, rainfall or air-temperature
+        grids_df:geopandas.DataFrame:   DataFrame containing map data of Singapore
+    
+    Returns:
+        measure_df  pandas DataFrame of the following schema:
+            grid_num:       Unique integer representing a grid in grids_df
+            date_active:    Date which mapping is valid
+            date_inactive:  Date which mapping becomes invalid
+            rank:           Integer declaring position relating to distance of station from grid
+            station_id:     Unique identifier for station
+            measure:        relative-humidity, rainfall or air-temperature
     '''
-    grids = gpd.read_file(gridfile)
-    grids['centroid'] = grids['geometry'].apply(lambda x: x.centroid) # get grids' centroid
+    df_metadata=query_nea_metadata(measure=measure,query=query)
+    df_metadata['latlon']=df_metadata[['longitude','latitude',]].apply(tuple,axis=1)
+    df_metadata.index=df_metadata['station']
+    grid_nums = list(grids_df['grid_num'].unique())
+    assignment = {}
 
-    # convert to dataframe
-    grids_df = pd.DataFrame(grids)
-    grids_df['centroid'] = grids_df['centroid'].astype(str)
-    grids_df['latlon'] = grids_df['centroid'].apply(lambda x: (float(x.split(' ')[1][1:]), float(x.split(' ')[2][:-1])))
-    grids_df['grid_num']=grids_df['grid_num'].astype(int)
-    return grids_df
+    for i in tqdm(range(len(grid_nums)),desc='Grids assigned'):
+        grid_coordinates = grids_df.iloc[i]['latlon'] # latlon of row i grid_num    
+        distances = df_metadata['latlon'].apply(lambda x: distance.euclidean(x,grid_coordinates))
+        distance_sorted = distances.sort_values()
+        ranked={k:v for k,v in enumerate(distance_sorted.index.values)}
+        assignment[grids_df.iloc[i]['grid_num']]=ranked
+
+    measure_df=pd.DataFrame(assignment).T.reset_index().melt(id_vars='index')
+    measure_df.rename(columns={'index':'grid_num','variable':'rank','value':'station_id'},inplace=True)
+    measure_df['measure']=measure
+    measure_df['date_active']=pd.to_datetime(query)
+    measure_df['date_inactive']=pd.to_datetime('2050-12-31 00:00:00')
+    measure_df = measure_df[['grid_num','date_active','date_inactive','rank','station_id','measure']]
+    return measure_df
+
+
+def assign_grids_v2(df_metadata, grids_df, query):
+    '''
+    Arguments:    
+        df_metadata: dataframe with station metadata i.e. latitude and longitude
+        df_: dataframe that contains stn latlon
+        query: timestamp
+    grid_nums: list of unique grid numbers
+    '''
+    measures=['air-temperature','rainfall','relative-humidity']
+    df_metadata['latlon']=df_metadata[['longitude','latitude',]].apply(tuple,axis=1)
+    df_metadata.index=df_metadata['station']
+    assignment = {}
+    for measure in measures:
+        print(f"Assigning stations for [{measure}]")
+        result=assign_measure(query,measure,grids_df)
+        assignment[measure]=result
+
+    assignment_df=pd.concat(assignment).reset_index()
+    assignment_df.drop(['level_0','level_1'],axis=1,inplace=True)
+    
+    return assignment_df
 
 
 if __name__ == '__main__':
