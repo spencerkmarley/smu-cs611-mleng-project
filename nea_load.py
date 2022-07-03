@@ -1,8 +1,6 @@
 import gcsfs
 import re
 
-from matplotlib.pyplot import get
-
 from src import jsonParser
 
 def load_nea_to_gbq(project:str,dataset_id:str,measure:str,filename:str,fs:None):
